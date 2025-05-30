@@ -1,43 +1,55 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useEffect, useRef } from "react"
-import mapboxgl from "mapbox-gl"
-import "mapbox-gl/dist/mapbox-gl.css"
-import { LayerPanel } from "@/components/layer-panel"
-import { StylePanel } from "@/components/style-panel"
-import { DataImportPanel } from "@/components/data-import-panel"
-import { ExpressionEditor } from "@/components/expression-editor"
-import { VersionHistory } from "@/components/version-history"
-import { GlobalSettingsPanel } from "@/components/global-settings-panel"
-import { Toolbar } from "@/components/toolbar"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
-import { MapPin, Layers, Palette, Database, Code, History, Settings } from "lucide-react"
+import { useState, useEffect, useRef } from "react";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
+import { LayerPanel } from "@/components/layer-panel";
+import { StylePanel } from "@/components/style-panel";
+import { DataImportPanel } from "@/components/data-import-panel";
+import { ExpressionEditor } from "@/components/expression-editor";
+import { VersionHistory } from "@/components/version-history";
+import { GlobalSettingsPanel } from "@/components/global-settings-panel";
+import { Toolbar } from "@/components/toolbar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
+import {
+  MapPin,
+  Layers,
+  Palette,
+  Database,
+  Code,
+  History,
+  Settings,
+} from "lucide-react";
 
 // Set your Mapbox access token here
-mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!
+mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!;
 
 interface MapStyle {
-  id: string
-  name: string
-  style: any
-  timestamp: Date
+  id: string;
+  name: string;
+  style: any;
+  timestamp: Date;
 }
 
 export default function MapStyleEditor() {
-  const mapContainer = useRef<HTMLDivElement>(null)
-  const map = useRef<mapboxgl.Map | null>(null)
-  const [mapLoaded, setMapLoaded] = useState(false)
-  const [activeTab, setActiveTab] = useState("layers")
-  const [currentStyle, setCurrentStyle] = useState<any>(null)
-  const [styleHistory, setStyleHistory] = useState<MapStyle[]>([])
-  const [selectedLayer, setSelectedLayer] = useState<string | null>(null)
-  const [is3DEnabled, setIs3DEnabled] = useState(false)
+  const mapContainer = useRef<HTMLDivElement>(null);
+  const map = useRef<mapboxgl.Map | null>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [activeTab, setActiveTab] = useState("global");
+  const [currentStyle, setCurrentStyle] = useState<any>(null);
+  const [styleHistory, setStyleHistory] = useState<MapStyle[]>([]);
+  const [selectedLayer, setSelectedLayer] = useState<string | null>(null);
+  const [is3DEnabled, setIs3DEnabled] = useState(false);
 
   useEffect(() => {
-    if (map.current) return
+    if (map.current) return;
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current!,
@@ -46,129 +58,134 @@ export default function MapStyleEditor() {
       zoom: 9,
       pitch: 0,
       bearing: 0,
-    })
+    });
 
     map.current.on("load", () => {
-      setMapLoaded(true)
-      setCurrentStyle(map.current?.getStyle())
-      saveStyleVersion("Initial Style")
-    })
+      setMapLoaded(true);
+      setCurrentStyle(map.current?.getStyle());
+      saveStyleVersion("Initial Style");
+    });
 
     map.current.on("style.load", () => {
-      setCurrentStyle(map.current?.getStyle())
-    })
+      setCurrentStyle(map.current?.getStyle());
+    });
 
     return () => {
       if (map.current) {
-        map.current.remove()
+        map.current.remove();
       }
-    }
-  }, [])
+    };
+  }, []);
 
   const saveStyleVersion = (name: string) => {
-    if (!map.current) return
+    if (!map.current) return;
 
-    const style = map.current.getStyle()
+    const style = map.current.getStyle();
     const newVersion: MapStyle = {
       id: Date.now().toString(),
       name,
       style: JSON.parse(JSON.stringify(style)),
       timestamp: new Date(),
-    }
+    };
 
-    setStyleHistory((prev) => [newVersion, ...prev.slice(0, 9)]) // Keep last 10 versions
-  }
+    setStyleHistory((prev) => [newVersion, ...prev.slice(0, 9)]); // Keep last 10 versions
+  };
 
   const loadStyleVersion = (styleVersion: MapStyle) => {
-    if (!map.current) return
-    map.current.setStyle(styleVersion.style)
-  }
+    if (!map.current) return;
+    map.current.setStyle(styleVersion.style);
+  };
 
   const exportStyle = () => {
-    if (!map.current) return
+    if (!map.current) return;
 
-    const style = map.current.getStyle()
-    const dataStr = JSON.stringify(style, null, 2)
-    const dataUri = "data:application/json;charset=utf-8," + encodeURIComponent(dataStr)
+    const style = map.current.getStyle();
+    const dataStr = JSON.stringify(style, null, 2);
+    const dataUri =
+      "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
 
-    const exportFileDefaultName = "mapbox-style.json"
-    const linkElement = document.createElement("a")
-    linkElement.setAttribute("href", dataUri)
-    linkElement.setAttribute("download", exportFileDefaultName)
-    linkElement.click()
-  }
+    const exportFileDefaultName = "mapbox-style.json";
+    const linkElement = document.createElement("a");
+    linkElement.setAttribute("href", dataUri);
+    linkElement.setAttribute("download", exportFileDefaultName);
+    linkElement.click();
+  };
 
   const importStyle = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file || !map.current) return
+    const file = event.target.files?.[0];
+    if (!file || !map.current) return;
 
-    const reader = new FileReader()
+    const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const style = JSON.parse(e.target?.result as string)
-        map.current?.setStyle(style)
-        saveStyleVersion(`Imported: ${file.name}`)
+        const style = JSON.parse(e.target?.result as string);
+        map.current?.setStyle(style);
+        saveStyleVersion(`Imported: ${file.name}`);
       } catch (error) {
-        console.error("Error importing style:", error)
+        console.error("Error importing style:", error);
       }
-    }
-    reader.readAsText(file)
-  }
+    };
+    reader.readAsText(file);
+  };
 
   const toggle3D = () => {
-    if (!map.current) return
+    if (!map.current) return;
 
-    const newPitch = is3DEnabled ? 0 : 60
-    map.current.easeTo({ pitch: newPitch })
-    setIs3DEnabled(!is3DEnabled)
-  }
+    const newPitch = is3DEnabled ? 0 : 60;
+    map.current.easeTo({ pitch: newPitch });
+    setIs3DEnabled(!is3DEnabled);
+  };
 
-  const updateLayerProperty = (layerId: string, property: string, value: any) => {
-    if (!map.current) return
+  const updateLayerProperty = (
+    layerId: string,
+    property: string,
+    value: any
+  ) => {
+    if (!map.current) return;
 
     try {
       if (property.startsWith("paint.")) {
-        const paintProperty = property.replace("paint.", "")
-        map.current.setPaintProperty(layerId, paintProperty, value)
+        const paintProperty = property.replace("paint.", "");
+        map.current.setPaintProperty(layerId, paintProperty, value);
       } else if (property.startsWith("layout.")) {
-        const layoutProperty = property.replace("layout.", "")
-        map.current.setLayoutProperty(layerId, layoutProperty, value)
+        const layoutProperty = property.replace("layout.", "");
+        map.current.setLayoutProperty(layerId, layoutProperty, value);
       }
 
-      setCurrentStyle(map.current.getStyle())
+      setCurrentStyle(map.current.getStyle());
     } catch (error) {
-      console.error("Error updating layer property:", error)
+      console.error("Error updating layer property:", error);
     }
-  }
+  };
 
   const addLayer = (layer: any) => {
-    if (!map.current) return
+    if (!map.current) return;
 
     try {
-      map.current.addLayer(layer)
-      setCurrentStyle(map.current.getStyle())
-      saveStyleVersion(`Added layer: ${layer.id}`)
+      map.current.addLayer(layer);
+      setCurrentStyle(map.current.getStyle());
+      saveStyleVersion(`Added layer: ${layer.id}`);
     } catch (error) {
-      console.error("Error adding layer:", error)
+      console.error("Error adding layer:", error);
     }
-  }
+  };
 
   const removeLayer = (layerId: string) => {
-    if (!map.current) return
+    if (!map.current) return;
 
     try {
-      map.current.removeLayer(layerId)
-      setCurrentStyle(map.current.getStyle())
-      saveStyleVersion(`Removed layer: ${layerId}`)
+      map.current.removeLayer(layerId);
+      setCurrentStyle(map.current.getStyle());
+      saveStyleVersion(`Removed layer: ${layerId}`);
     } catch (error) {
-      console.error("Error removing layer:", error)
+      console.error("Error removing layer:", error);
     }
-  }
+  };
 
   const updateStyle = () => {
-    if (!map.current) return
-    setCurrentStyle(map.current.getStyle())
-  }
+    if (!map.current) return;
+    setCurrentStyle(map.current.getStyle());
+  };
 
   return (
     <div className="h-screen flex flex-col bg-background">
@@ -183,7 +200,11 @@ export default function MapStyleEditor() {
       <ResizablePanelGroup direction="horizontal" className="flex-1">
         <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
           <div className="h-full border-r bg-card">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="h-full flex flex-col"
+            >
               <TabsList className="grid w-full grid-cols-6 rounded-none border-b">
                 <TabsTrigger value="global" className="flex items-center gap-1">
                   <Settings className="w-4 h-4" />
@@ -201,11 +222,17 @@ export default function MapStyleEditor() {
                   <Database className="w-4 h-4" />
                   <span className="hidden sm:inline">Data</span>
                 </TabsTrigger>
-                <TabsTrigger value="expression" className="flex items-center gap-1">
+                <TabsTrigger
+                  value="expression"
+                  className="flex items-center gap-1"
+                >
                   <Code className="w-4 h-4" />
                   <span className="hidden sm:inline">Code</span>
                 </TabsTrigger>
-                <TabsTrigger value="history" className="flex items-center gap-1">
+                <TabsTrigger
+                  value="history"
+                  className="flex items-center gap-1"
+                >
                   <History className="w-4 h-4" />
                   <span className="hidden sm:inline">History</span>
                 </TabsTrigger>
@@ -213,7 +240,11 @@ export default function MapStyleEditor() {
 
               <div className="flex-1 overflow-hidden">
                 <TabsContent value="global" className="h-full m-0">
-                  <GlobalSettingsPanel map={map.current} currentStyle={currentStyle} onUpdateStyle={updateStyle} />
+                  <GlobalSettingsPanel
+                    map={map.current}
+                    currentStyle={currentStyle}
+                    onUpdateStyle={updateStyle}
+                  />
                 </TabsContent>
 
                 <TabsContent value="layers" className="h-full m-0">
@@ -240,7 +271,9 @@ export default function MapStyleEditor() {
                 <TabsContent value="data" className="h-full m-0">
                   <DataImportPanel
                     map={map.current}
-                    onDataImported={(layerId) => saveStyleVersion(`Imported data: ${layerId}`)}
+                    onDataImported={(layerId) =>
+                      saveStyleVersion(`Imported data: ${layerId}`)
+                    }
                   />
                 </TabsContent>
 
@@ -281,5 +314,5 @@ export default function MapStyleEditor() {
         </ResizablePanel>
       </ResizablePanelGroup>
     </div>
-  )
+  );
 }
