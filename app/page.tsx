@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { LayerPanel } from "@/components/layer-panel";
@@ -60,14 +60,24 @@ export default function MapStyleEditor() {
       bearing: 0,
     });
 
+    const clearControl = () => {
+      const els = document.querySelectorAll(
+        ".mapboxgl-ctrl-bottom-left, .mapboxgl-ctrl-bottom-right"
+      );
+      els.forEach((el) => {
+        (el as HTMLElement).style.display = "none";
+      });
+    };
     map.current.on("load", () => {
       setMapLoaded(true);
       setCurrentStyle(map.current?.getStyle());
       saveStyleVersion("Initial Style");
+      clearControl();
     });
 
     map.current.on("style.load", () => {
       setCurrentStyle(map.current?.getStyle());
+      clearControl();
     });
 
     return () => {

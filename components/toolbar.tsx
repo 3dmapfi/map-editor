@@ -33,7 +33,7 @@ export function Toolbar({
     <div className="border-b bg-card px-4 py-2 flex items-center gap-2">
       <div className="flex items-center gap-2">
         <img src="/logo.svg" alt="Logo" className="w-7 h-7 mr-2" />
-        <h1 className="font-semibold text-lg">3DMapFi Map Editor</h1>
+        <h1 className="font-semibold text-lg">3DMapFi Editor</h1>
         <Separator orientation="vertical" className="h-6" />
       </div>
 
