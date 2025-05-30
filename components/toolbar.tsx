@@ -1,25 +1,39 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Separator } from "@/components/ui/separator"
-import { Download, Upload, Mountain, Save, Share, Settings } from "lucide-react"
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import {
+  Download,
+  Upload,
+  Mountain,
+  Save,
+  Share,
+  Settings,
+} from "lucide-react";
 
 interface ToolbarProps {
-  onExport: () => void
-  onImport: (event: React.ChangeEvent<HTMLInputElement>) => void
-  onToggle3D: () => void
-  is3DEnabled: boolean
-  onSaveVersion: () => void
+  onExport: () => void;
+  onImport: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onToggle3D: () => void;
+  is3DEnabled: boolean;
+  onSaveVersion: () => void;
 }
 
-export function Toolbar({ onExport, onImport, onToggle3D, is3DEnabled, onSaveVersion }: ToolbarProps) {
+export function Toolbar({
+  onExport,
+  onImport,
+  onToggle3D,
+  is3DEnabled,
+  onSaveVersion,
+}: ToolbarProps) {
   return (
     <div className="border-b bg-card px-4 py-2 flex items-center gap-2">
       <div className="flex items-center gap-2">
-        <h1 className="font-semibold text-lg">Mapbox Style Editor</h1>
+        <img src="/logo.svg" alt="Logo" className="w-7 h-7 mr-2" />
+        <h1 className="font-semibold text-lg">3DMapFi Map Editor</h1>
         <Separator orientation="vertical" className="h-6" />
       </div>
 
@@ -40,11 +54,21 @@ export function Toolbar({ onExport, onImport, onToggle3D, is3DEnabled, onSaveVer
             Import
           </label>
         </Button>
-        <Input id="import-style" type="file" accept=".json" onChange={onImport} className="hidden" />
+        <Input
+          id="import-style"
+          type="file"
+          accept=".json"
+          onChange={onImport}
+          className="hidden"
+        />
 
         <Separator orientation="vertical" className="h-6" />
 
-        <Button variant={is3DEnabled ? "default" : "outline"} size="sm" onClick={onToggle3D}>
+        <Button
+          variant={is3DEnabled ? "default" : "outline"}
+          size="sm"
+          onClick={onToggle3D}
+        >
           <Mountain className="w-4 h-4 mr-1" />
           3D
         </Button>
@@ -59,5 +83,5 @@ export function Toolbar({ onExport, onImport, onToggle3D, is3DEnabled, onSaveVer
         </Button>
       </div>
     </div>
-  )
+  );
 }
