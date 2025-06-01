@@ -28,7 +28,7 @@ export function Toolbar({
   onToggle3D,
   is3DEnabled,
   onSaveVersion,
-}: ToolbarProps) {
+}: Readonly<ToolbarProps>) {
   return (
     <div className="border-b bg-card px-4 py-2 flex items-center gap-2">
       <div className="flex items-center gap-2">

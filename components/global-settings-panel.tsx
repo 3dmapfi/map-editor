@@ -1,28 +1,57 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Input } from "@/components/ui/input"
-import { HelpCircle } from "lucide-react"
-import type mapboxgl from "mapbox-gl"
+import { useState, useEffect } from "react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Input } from "@/components/ui/input";
+import { HelpCircle } from "lucide-react";
+import type mapboxgl from "mapbox-gl";
+import { LightSpecification } from "mapbox-gl";
 
 interface GlobalSettingsPanelProps {
-  map: mapboxgl.Map | null
-  currentStyle: any
-  onUpdateStyle: () => void
+  map: mapboxgl.Map | null;
+  currentStyle: any;
+  onUpdateStyle: () => void;
 }
 
-export function GlobalSettingsPanel({ map, currentStyle, onUpdateStyle }: GlobalSettingsPanelProps) {
-  const [baseMapStyle, setBaseMapStyle] = useState("standard")
-  const [colorTheme, setColorTheme] = useState("monochrome")
-  const [lightPreset, setLightPreset] = useState("day")
-  const [visibilitySettings, setVisibilitySettings] = useState<Record<string, boolean>>({
+// Map style URLs
+const styleUrls: Record<string, string> = {
+  standard: "mapbox://styles/mapbox/standard",
+  streets: "mapbox://styles/mapbox/streets-v12",
+  outdoors: "mapbox://styles/mapbox/outdoors-v12",
+  light: "mapbox://styles/mapbox/light-v11",
+  dark: "mapbox://styles/mapbox/dark-v11",
+  satellite: "mapbox://styles/mapbox/satellite-v9",
+  "satellite-streets": "mapbox://styles/mapbox/satellite-streets-v12",
+};
+
+export function GlobalSettingsPanel({
+  map,
+  currentStyle,
+  onUpdateStyle,
+}: Readonly<GlobalSettingsPanelProps>) {
+  const [baseMapStyle, setBaseMapStyle] = useState("standard");
+  const [colorTheme, setColorTheme] = useState("monochrome");
+  const [lightPreset, setLightPreset] = useState("day");
+  const [visibilitySettings, setVisibilitySettings] = useState<
+    Record<string, boolean>
+  >({
     "landmark-icons": true,
     "3d-models": true,
     "place-labels": true,
@@ -30,149 +59,152 @@ export function GlobalSettingsPanel({ map, currentStyle, onUpdateStyle }: Global
     "transit-labels": true,
     "pedestrian-paths": true,
     "road-labels": true,
-  })
+  });
   const [roadColors, setRoadColors] = useState<Record<string, string>>({
     "trunk-roads": "#ff9500",
     "other-roads": "#ffffff",
     "motorway-roads": "#1d8bff",
-  })
+  });
 
   useEffect(() => {
-    if (!map || !currentStyle) return
+    if (!map || !currentStyle) return;
 
     // Initialize state from current style if available
-    const layers = currentStyle.layers || []
+    const layers = currentStyle.layers ?? [];
+    const styleUrl = currentStyle.sprite?.replace("sprite", "style");
+    for (const style in styleUrls) {
+      console.log(styleUrls[style], styleUrl);
+      if (styleUrls[style] === styleUrl) {
+        setBaseMapStyle(style);
+        break;
+      }
+    }
 
     // Check visibility settings from layers
-    const roadLabels = layers.find((l: any) => l.id === "road-label")
+    const roadLabels = layers.find((l: any) => l.id === "road-label");
     if (roadLabels) {
       setVisibilitySettings((prev) => ({
         ...prev,
         "road-labels": roadLabels.layout?.visibility !== "none",
-      }))
+      }));
     }
 
-    const poiLabels = layers.find((l: any) => l.id === "poi-label")
+    const poiLabels = layers.find((l: any) => l.id === "poi-label");
     if (poiLabels) {
       setVisibilitySettings((prev) => ({
         ...prev,
         "poi-labels": poiLabels.layout?.visibility !== "none",
-      }))
+      }));
     }
 
     // Get road colors
-    const trunkRoad = layers.find((l: any) => l.id === "road-trunk")
-    const motorwayRoad = layers.find((l: any) => l.id === "road-motorway")
-    const otherRoad = layers.find((l: any) => l.id === "road-street")
+    const trunkRoad = layers.find((l: any) => l.id === "road-trunk");
+    const motorwayRoad = layers.find((l: any) => l.id === "road-motorway");
+    const otherRoad = layers.find((l: any) => l.id === "road-street");
 
     if (trunkRoad?.paint?.["line-color"]) {
-      setRoadColors((prev) => ({ ...prev, "trunk-roads": trunkRoad.paint["line-color"] }))
+      setRoadColors((prev) => ({
+        ...prev,
+        "trunk-roads": trunkRoad.paint["line-color"],
+      }));
     }
     if (motorwayRoad?.paint?.["line-color"]) {
-      setRoadColors((prev) => ({ ...prev, "motorway-roads": motorwayRoad.paint["line-color"] }))
+      setRoadColors((prev) => ({
+        ...prev,
+        "motorway-roads": motorwayRoad.paint["line-color"],
+      }));
     }
     if (otherRoad?.paint?.["line-color"]) {
-      setRoadColors((prev) => ({ ...prev, "other-roads": otherRoad.paint["line-color"] }))
+      setRoadColors((prev) => ({
+        ...prev,
+        "other-roads": otherRoad.paint["line-color"],
+      }));
     }
-  }, [map, currentStyle])
+  }, [map, currentStyle]);
 
   const updateBaseMapStyle = (style: string) => {
-    setBaseMapStyle(style)
-    if (!map) return
-
-    // Map style URLs
-    const styleUrls: Record<string, string> = {
-      standard: "mapbox://styles/mapbox/standard",
-      streets: "mapbox://styles/mapbox/streets-v12",
-      outdoors: "mapbox://styles/mapbox/outdoors-v12",
-      light: "mapbox://styles/mapbox/light-v11",
-      dark: "mapbox://styles/mapbox/dark-v11",
-      satellite: "mapbox://styles/mapbox/satellite-v9",
-      "satellite-streets": "mapbox://styles/mapbox/satellite-streets-v12",
-    }
+    setBaseMapStyle(style);
+    if (!map) return;
 
     // Save current camera position
-    const center = map.getCenter()
-    const zoom = map.getZoom()
-    const pitch = map.getPitch()
-    const bearing = map.getBearing()
+    const center = map.getCenter();
+    const zoom = map.getZoom();
+    const pitch = map.getPitch();
+    const bearing = map.getBearing();
 
     // Change style
-    map.setStyle(styleUrls[style])
+    map.setStyle(styleUrls[style]);
 
     // Restore camera after style change
     map.once("style.load", () => {
-      map.setCenter(center)
-      map.setZoom(zoom)
-      map.setPitch(pitch)
-      map.setBearing(bearing)
-      onUpdateStyle()
-    })
-  }
+      map.setCenter(center);
+      map.setZoom(zoom);
+      map.setPitch(pitch);
+      map.setBearing(bearing);
+      onUpdateStyle();
+    });
+  };
 
   const updateColorTheme = (theme: string) => {
-    setColorTheme(theme)
-    if (!map) return
+    setColorTheme(theme);
+    if (!map) return;
 
     // Apply color theme changes
     // This would typically involve updating multiple layer properties
     // For demonstration, we'll just update a few key layers
 
     if (theme === "monochrome") {
-      updateRoadColor("trunk-roads", "#555555")
-      updateRoadColor("motorway-roads", "#333333")
-      updateRoadColor("other-roads", "#777777")
+      updateRoadColor("trunk-roads", "#555555");
+      updateRoadColor("motorway-roads", "#333333");
+      updateRoadColor("other-roads", "#777777");
     } else if (theme === "night") {
-      updateRoadColor("trunk-roads", "#3b4252")
-      updateRoadColor("motorway-roads", "#2e3440")
-      updateRoadColor("other-roads", "#4c566a")
+      updateRoadColor("trunk-roads", "#3b4252");
+      updateRoadColor("motorway-roads", "#2e3440");
+      updateRoadColor("other-roads", "#4c566a");
     } else {
       // Default/color theme
-      updateRoadColor("trunk-roads", "#ff9500")
-      updateRoadColor("motorway-roads", "#1d8bff")
-      updateRoadColor("other-roads", "#ffffff")
+      updateRoadColor("trunk-roads", "#ff9500");
+      updateRoadColor("motorway-roads", "#1d8bff");
+      updateRoadColor("other-roads", "#ffffff");
     }
-  }
+  };
 
   const updateLightPreset = (preset: string) => {
-    setLightPreset(preset)
-    if (!map) return
+    setLightPreset(preset);
+    if (!map) return;
 
-    // Apply light preset
-    const lightSettings: Record<string, any> = {
+    // Mapbox GL JS setLight expects a single light object, but supports ambient and directional as sub-properties
+    // We'll define each preset with both ambient and directional
+    const lightSettings: Record<string, LightSpecification> = {
       day: {
         anchor: "viewport",
         color: "#ffffff",
         intensity: 0.4,
-        position: [1.15, 210, 30],
       },
       night: {
         anchor: "viewport",
         color: "#002746",
         intensity: 0.3,
-        position: [1.15, 210, 30],
       },
       dawn: {
         anchor: "viewport",
         color: "#fc8eac",
         intensity: 0.3,
-        position: [1.15, 90, 30],
       },
       dusk: {
         anchor: "viewport",
         color: "#fc8eac",
         intensity: 0.3,
-        position: [1.15, 270, 30],
       },
-    }
+    };
 
-    map.setLight(lightSettings[preset])
-    onUpdateStyle()
-  }
+    map.setLight(lightSettings[preset]);
+    onUpdateStyle();
+  };
 
   const toggleLayerVisibility = (layerId: string, visible: boolean) => {
-    setVisibilitySettings((prev) => ({ ...prev, [layerId]: visible }))
-    if (!map) return
+    setVisibilitySettings((prev) => ({ ...prev, [layerId]: visible }));
+    if (!map) return;
 
     // Map from our internal IDs to Mapbox layer IDs
     const layerMapping: Record<string, string[]> = {
@@ -183,70 +215,79 @@ export function GlobalSettingsPanel({ map, currentStyle, onUpdateStyle }: Global
       "transit-labels": ["transit-label"],
       "pedestrian-paths": ["road-pedestrian", "road-path", "road-steps"],
       "road-labels": ["road-label"],
-    }
+    };
 
-    const mapboxLayers = layerMapping[layerId] || []
-    const visibility = visible ? "visible" : "none"
+    const mapboxLayers = layerMapping[layerId] || [];
+    const visibility = visible ? "visible" : "none";
 
     mapboxLayers.forEach((layer) => {
       if (map.getLayer(layer)) {
-        map.setLayoutProperty(layer, "visibility", visibility)
+        map.setLayoutProperty(layer, "visibility", visibility);
       }
-    })
+    });
 
-    onUpdateStyle()
-  }
+    onUpdateStyle();
+  };
 
   const updateRoadColor = (roadType: string, color: string) => {
-    setRoadColors((prev) => ({ ...prev, [roadType]: color }))
-    if (!map) return
+    setRoadColors((prev) => ({ ...prev, [roadType]: color }));
+    if (!map) return;
 
     // Map from our internal IDs to Mapbox layer IDs
     const layerMapping: Record<string, string[]> = {
       "trunk-roads": ["road-trunk", "road-trunk-case"],
       "motorway-roads": ["road-motorway", "road-motorway-case"],
-      "other-roads": ["road-street", "road-minor", "road-primary", "road-secondary"],
-    }
+      "other-roads": [
+        "road-street",
+        "road-minor",
+        "road-primary",
+        "road-secondary",
+      ],
+    };
 
-    const mapboxLayers = layerMapping[roadType] || []
+    const mapboxLayers = layerMapping[roadType] || [];
 
     mapboxLayers.forEach((layer) => {
       if (map.getLayer(layer)) {
         if (layer.includes("-case")) {
           // For case layers (outlines), use a darker version of the color
-          const darkerColor = adjustColorBrightness(color, -0.3)
-          map.setPaintProperty(layer, "line-color", darkerColor)
+          const darkerColor = adjustColorBrightness(color, -0.3);
+          map.setPaintProperty(layer, "line-color", darkerColor);
         } else {
-          map.setPaintProperty(layer, "line-color", color)
+          map.setPaintProperty(layer, "line-color", color);
         }
       }
-    })
+    });
 
-    onUpdateStyle()
-  }
+    onUpdateStyle();
+  };
 
   // Helper function to darken/lighten colors
   const adjustColorBrightness = (hex: string, factor: number): string => {
     // Convert hex to RGB
-    let r = Number.parseInt(hex.substring(1, 3), 16)
-    let g = Number.parseInt(hex.substring(3, 5), 16)
-    let b = Number.parseInt(hex.substring(5, 7), 16)
+    let r = Number.parseInt(hex.substring(1, 3), 16);
+    let g = Number.parseInt(hex.substring(3, 5), 16);
+    let b = Number.parseInt(hex.substring(5, 7), 16);
 
     // Adjust brightness
-    r = Math.min(255, Math.max(0, Math.round(r + factor * 255)))
-    g = Math.min(255, Math.max(0, Math.round(g + factor * 255)))
-    b = Math.min(255, Math.max(0, Math.round(b + factor * 255)))
+    r = Math.min(255, Math.max(0, Math.round(r + factor * 255)));
+    g = Math.min(255, Math.max(0, Math.round(g + factor * 255)));
+    b = Math.min(255, Math.max(0, Math.round(b + factor * 255)));
 
     // Convert back to hex
-    return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`
-  }
+    return `#${r.toString(16).padStart(2, "0")}${g
+      .toString(16)
+      .padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+  };
 
   return (
     <ScrollArea className="h-full">
       <div className="p-4 space-y-6">
         <div>
           <h3 className="font-medium mb-2">Map Style Settings</h3>
-          <p className="text-sm text-muted-foreground">Configure the base map appearance</p>
+          <p className="text-sm text-muted-foreground">
+            Configure the base map appearance
+          </p>
         </div>
 
         <Card>
@@ -265,7 +306,9 @@ export function GlobalSettingsPanel({ map, currentStyle, onUpdateStyle }: Global
                 <SelectItem value="light">Light</SelectItem>
                 <SelectItem value="dark">Dark</SelectItem>
                 <SelectItem value="satellite">Satellite</SelectItem>
-                <SelectItem value="satellite-streets">Satellite Streets</SelectItem>
+                <SelectItem value="satellite-streets">
+                  Satellite Streets
+                </SelectItem>
               </SelectContent>
             </Select>
           </CardContent>
@@ -326,7 +369,9 @@ export function GlobalSettingsPanel({ map, currentStyle, onUpdateStyle }: Global
                       id="trunk-roads"
                       type="color"
                       value={roadColors["trunk-roads"]}
-                      onChange={(e) => updateRoadColor("trunk-roads", e.target.value)}
+                      onChange={(e) =>
+                        updateRoadColor("trunk-roads", e.target.value)
+                      }
                       className="w-full h-8"
                     />
                   </div>
@@ -343,7 +388,9 @@ export function GlobalSettingsPanel({ map, currentStyle, onUpdateStyle }: Global
                       id="other-roads"
                       type="color"
                       value={roadColors["other-roads"]}
-                      onChange={(e) => updateRoadColor("other-roads", e.target.value)}
+                      onChange={(e) =>
+                        updateRoadColor("other-roads", e.target.value)
+                      }
                       className="w-full h-8"
                     />
                   </div>
@@ -360,7 +407,9 @@ export function GlobalSettingsPanel({ map, currentStyle, onUpdateStyle }: Global
                       id="motorway-roads"
                       type="color"
                       value={roadColors["motorway-roads"]}
-                      onChange={(e) => updateRoadColor("motorway-roads", e.target.value)}
+                      onChange={(e) =>
+                        updateRoadColor("motorway-roads", e.target.value)
+                      }
                       className="w-full h-8"
                     />
                   </div>
@@ -370,7 +419,9 @@ export function GlobalSettingsPanel({ map, currentStyle, onUpdateStyle }: Global
           </AccordionItem>
 
           <AccordionItem value="typography">
-            <AccordionTrigger className="font-medium">Typography</AccordionTrigger>
+            <AccordionTrigger className="font-medium">
+              Typography
+            </AccordionTrigger>
             <AccordionContent>
               <div className="space-y-4 pt-2">
                 <div>
@@ -392,18 +443,24 @@ export function GlobalSettingsPanel({ map, currentStyle, onUpdateStyle }: Global
           </AccordionItem>
 
           <AccordionItem value="visibility">
-            <AccordionTrigger className="font-medium">Visibility</AccordionTrigger>
+            <AccordionTrigger className="font-medium">
+              Visibility
+            </AccordionTrigger>
             <AccordionContent>
               <div className="space-y-4 pt-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Label htmlFor="landmark-icons">Landmark Icons</Label>
-                    <span className="text-xs bg-muted text-muted-foreground px-1 rounded">beta</span>
+                    <span className="text-xs bg-muted text-muted-foreground px-1 rounded">
+                      beta
+                    </span>
                   </div>
                   <Switch
                     id="landmark-icons"
                     checked={visibilitySettings["landmark-icons"]}
-                    onCheckedChange={(checked) => toggleLayerVisibility("landmark-icons", checked)}
+                    onCheckedChange={(checked) =>
+                      toggleLayerVisibility("landmark-icons", checked)
+                    }
                   />
                 </div>
 
@@ -412,7 +469,9 @@ export function GlobalSettingsPanel({ map, currentStyle, onUpdateStyle }: Global
                   <Switch
                     id="3d-models"
                     checked={visibilitySettings["3d-models"]}
-                    onCheckedChange={(checked) => toggleLayerVisibility("3d-models", checked)}
+                    onCheckedChange={(checked) =>
+                      toggleLayerVisibility("3d-models", checked)
+                    }
                   />
                 </div>
 
@@ -421,7 +480,9 @@ export function GlobalSettingsPanel({ map, currentStyle, onUpdateStyle }: Global
                   <Switch
                     id="place-labels"
                     checked={visibilitySettings["place-labels"]}
-                    onCheckedChange={(checked) => toggleLayerVisibility("place-labels", checked)}
+                    onCheckedChange={(checked) =>
+                      toggleLayerVisibility("place-labels", checked)
+                    }
                   />
                 </div>
 
@@ -430,7 +491,9 @@ export function GlobalSettingsPanel({ map, currentStyle, onUpdateStyle }: Global
                   <Switch
                     id="poi-labels"
                     checked={visibilitySettings["poi-labels"]}
-                    onCheckedChange={(checked) => toggleLayerVisibility("poi-labels", checked)}
+                    onCheckedChange={(checked) =>
+                      toggleLayerVisibility("poi-labels", checked)
+                    }
                   />
                 </div>
 
@@ -439,16 +502,22 @@ export function GlobalSettingsPanel({ map, currentStyle, onUpdateStyle }: Global
                   <Switch
                     id="transit-labels"
                     checked={visibilitySettings["transit-labels"]}
-                    onCheckedChange={(checked) => toggleLayerVisibility("transit-labels", checked)}
+                    onCheckedChange={(checked) =>
+                      toggleLayerVisibility("transit-labels", checked)
+                    }
                   />
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="pedestrian-paths">Pedestrian Roads, Paths, Trails</Label>
+                  <Label htmlFor="pedestrian-paths">
+                    Pedestrian Roads, Paths, Trails
+                  </Label>
                   <Switch
                     id="pedestrian-paths"
                     checked={visibilitySettings["pedestrian-paths"]}
-                    onCheckedChange={(checked) => toggleLayerVisibility("pedestrian-paths", checked)}
+                    onCheckedChange={(checked) =>
+                      toggleLayerVisibility("pedestrian-paths", checked)
+                    }
                   />
                 </div>
 
@@ -457,7 +526,9 @@ export function GlobalSettingsPanel({ map, currentStyle, onUpdateStyle }: Global
                   <Switch
                     id="road-labels"
                     checked={visibilitySettings["road-labels"]}
-                    onCheckedChange={(checked) => toggleLayerVisibility("road-labels", checked)}
+                    onCheckedChange={(checked) =>
+                      toggleLayerVisibility("road-labels", checked)
+                    }
                   />
                 </div>
               </div>
@@ -488,5 +559,5 @@ export function GlobalSettingsPanel({ map, currentStyle, onUpdateStyle }: Global
         </Accordion>
       </div>
     </ScrollArea>
-  )
+  );
 }

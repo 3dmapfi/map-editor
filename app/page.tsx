@@ -2,8 +2,8 @@
 
 import type React from "react";
 
-import { useState, useEffect, useRef, useLayoutEffect } from "react";
-import mapboxgl from "mapbox-gl";
+import { useState, useEffect, useRef } from "react";
+import mapboxgl, { StyleSpecification } from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { LayerPanel } from "@/components/layer-panel";
 import { StylePanel } from "@/components/style-panel";
@@ -48,12 +48,21 @@ export default function MapStyleEditor() {
   const [selectedLayer, setSelectedLayer] = useState<string | null>(null);
   const [is3DEnabled, setIs3DEnabled] = useState(false);
 
+  // New state variables for global settings
+  const [baseMapStyle, setBaseMapStyle] = useState(
+    "mapbox://styles/mapbox/standard"
+  );
+  const [colorTheme, setColorTheme] = useState("light");
+  const [lightPreset, setLightPreset] = useState("day");
+  const [visibilitySettings, setVisibilitySettings] = useState<any>(null);
+  const [roadColors, setRoadColors] = useState<any>(null);
+
   useEffect(() => {
     if (map.current) return;
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current!,
-      style: "mapbox://styles/mapbox/standard",
+      style: baseMapStyle,
       center: [-74.5, 40],
       zoom: 9,
       pitch: 0,
@@ -87,10 +96,12 @@ export default function MapStyleEditor() {
     };
   }, []);
 
-  const saveStyleVersion = (name: string) => {
+  const saveStyleVersion = (name: string, spec?: StyleSpecification) => {
     if (!map.current) return;
-
-    const style = map.current.getStyle();
+    let style = spec;
+    if (!spec) {
+      style = map.current.getStyle();
+    }
     const newVersion: MapStyle = {
       id: Date.now().toString(),
       name,
@@ -110,7 +121,18 @@ export default function MapStyleEditor() {
     if (!map.current) return;
 
     const style = map.current.getStyle();
-    const dataStr = JSON.stringify(style, null, 2);
+    // Bundle global settings with style
+    const exportData = {
+      style,
+      globalSettings: {
+        baseMapStyle,
+        colorTheme,
+        lightPreset,
+        visibilitySettings,
+        roadColors,
+      },
+    };
+    const dataStr = JSON.stringify(exportData, null, 2);
     const dataUri =
       "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
 
@@ -128,9 +150,19 @@ export default function MapStyleEditor() {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const style = JSON.parse(e.target?.result as string);
+        const data = JSON.parse(e.target?.result as string);
+        // Support both legacy (just style) and new (with globalSettings)
+        const style: StyleSpecification = data.style ?? data;
         map.current?.setStyle(style);
-        saveStyleVersion(`Imported: ${file.name}`);
+        saveStyleVersion(`Imported: ${file.name}`, style);
+        // If globalSettings exist, update them
+        if (data.globalSettings) {
+          setBaseMapStyle(data.globalSettings.baseMapStyle ?? "mapbox://styles/mapbox/standard");
+          setColorTheme(data.globalSettings.colorTheme ?? "light");
+          setLightPreset(data.globalSettings.lightPreset ?? "day");
+          setVisibilitySettings(data.globalSettings.visibilitySettings ?? null);
+          setRoadColors(data.globalSettings.roadColors ?? null);
+        }
       } catch (error) {
         console.error("Error importing style:", error);
       }
@@ -156,10 +188,10 @@ export default function MapStyleEditor() {
     try {
       if (property.startsWith("paint.")) {
         const paintProperty = property.replace("paint.", "");
-        map.current.setPaintProperty(layerId, paintProperty, value);
+        map.current.setPaintProperty(layerId, paintProperty as any, value);
       } else if (property.startsWith("layout.")) {
         const layoutProperty = property.replace("layout.", "");
-        map.current.setLayoutProperty(layerId, layoutProperty, value);
+        map.current.setLayoutProperty(layerId, layoutProperty as any, value);
       }
 
       setCurrentStyle(map.current.getStyle());
