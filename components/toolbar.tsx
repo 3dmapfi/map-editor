@@ -57,7 +57,7 @@ export function Toolbar({
         <Input
           id="import-style"
           type="file"
-          accept=".json"
+          accept=".json,.mfc"
           onChange={onImport}
           className="hidden"
         />

@@ -134,9 +134,9 @@ export default function MapStyleEditor() {
     };
     const dataStr = JSON.stringify(exportData, null, 2);
     const dataUri =
-      "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
+      "data:application/mfc;charset=utf-8," + encodeURIComponent(dataStr);
 
-    const exportFileDefaultName = "mapbox-style.json";
+    const exportFileDefaultName = "mapfi-style.mfc";
     const linkElement = document.createElement("a");
     linkElement.setAttribute("href", dataUri);
     linkElement.setAttribute("download", exportFileDefaultName);
@@ -146,6 +146,14 @@ export default function MapStyleEditor() {
   const importStyle = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !map.current) return;
+
+    // Only allow .json or .mfc files
+    const allowedExtensions = [".json", ".mfc"];
+    const fileName = file.name.toLowerCase();
+    if (!allowedExtensions.some((ext) => fileName.endsWith(ext))) {
+      alert("Please select a .json or .mfc file.");
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -157,7 +165,10 @@ export default function MapStyleEditor() {
         saveStyleVersion(`Imported: ${file.name}`, style);
         // If globalSettings exist, update them
         if (data.globalSettings) {
-          setBaseMapStyle(data.globalSettings.baseMapStyle ?? "mapbox://styles/mapbox/standard");
+          setBaseMapStyle(
+            data.globalSettings.baseMapStyle ??
+              "mapbox://styles/mapbox/standard"
+          );
           setColorTheme(data.globalSettings.colorTheme ?? "light");
           setLightPreset(data.globalSettings.lightPreset ?? "day");
           setVisibilitySettings(data.globalSettings.visibilitySettings ?? null);
@@ -165,6 +176,9 @@ export default function MapStyleEditor() {
         }
       } catch (error) {
         console.error("Error importing style:", error);
+        alert(
+          "Failed to import file. Make sure it is a valid JSON or MFC file."
+        );
       }
     };
     reader.readAsText(file);
