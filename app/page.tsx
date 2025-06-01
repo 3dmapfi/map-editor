@@ -67,7 +67,7 @@ export default function MapStyleEditor() {
     map.current = new mapboxgl.Map({
       container: mapContainer.current!,
       style: baseMapStyle,
-      center: [-74.5, 40],
+      center: [-74.0, 40.7],
       zoom: 9,
       pitch: 0,
       bearing: 0,
@@ -177,6 +177,22 @@ export default function MapStyleEditor() {
           setLightPreset(data.globalSettings.lightPreset ?? "day");
           setVisibilitySettings(data.globalSettings.visibilitySettings ?? null);
           setRoadColors(data.globalSettings.roadColors ?? null);
+        }
+        // Move camera if style has center/zoom/pitch/bearing
+        const moveCamera = () => {
+          if (!map.current) return;
+          if (Array.isArray(style.center) && style.center.length === 2) {
+            map.current.setCenter(style.center as [number, number]);
+          }
+          if (typeof style.zoom === "number") map.current.setZoom(style.zoom);
+          if (typeof style.bearing === "number")
+            map.current.setBearing(style.bearing);
+          if (typeof style.pitch === "number")
+            map.current.setPitch(style.pitch);
+        };
+        // Wait for style to load before moving camera
+        if (map.current) {
+          map.current.once("style.load", moveCamera);
         }
       } catch (error) {
         console.error("Error importing style:", error);
