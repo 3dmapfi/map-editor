@@ -10,7 +10,10 @@ import { StylePanel } from "@/components/style-panel";
 import { DataImportPanel } from "@/components/data-import-panel";
 import { ExpressionEditor } from "@/components/expression-editor";
 import { VersionHistory } from "@/components/version-history";
-import { GlobalSettingsPanel } from "@/components/global-settings-panel";
+import {
+  GlobalSettingsPanel,
+  GlobalSettingsPanelProps,
+} from "@/components/global-settings-panel";
 import { Toolbar } from "@/components/toolbar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -53,7 +56,8 @@ export default function MapStyleEditor() {
     "mapbox://styles/mapbox/standard"
   );
   const [colorTheme, setColorTheme] = useState("light");
-  const [lightPreset, setLightPreset] = useState("day");
+  const [lightPreset, setLightPreset] =
+    useState<GlobalSettingsPanelProps["light"]>("day");
   const [visibilitySettings, setVisibilitySettings] = useState<any>(null);
   const [roadColors, setRoadColors] = useState<any>(null);
 
@@ -119,11 +123,11 @@ export default function MapStyleEditor() {
 
   const exportStyle = () => {
     if (!map.current) return;
-
+    // Get the latest light effect from the panel (in case user changed it)
     const style = map.current.getStyle();
     // Bundle global settings with style
     const exportData = {
-      style,
+      style: { ...style },
       globalSettings: {
         baseMapStyle,
         colorTheme,
@@ -136,7 +140,7 @@ export default function MapStyleEditor() {
     const dataUri =
       "data:application/mfc;charset=utf-8," + encodeURIComponent(dataStr);
 
-    const exportFileDefaultName = "mapfi-style.mfc";
+    const exportFileDefaultName = "mapfi-session.mfc";
     const linkElement = document.createElement("a");
     linkElement.setAttribute("href", dataUri);
     linkElement.setAttribute("download", exportFileDefaultName);
@@ -238,9 +242,12 @@ export default function MapStyleEditor() {
     }
   };
 
-  const updateStyle = () => {
+  const updateStyle = (light?: string) => {
     if (!map.current) return;
     setCurrentStyle(map.current.getStyle());
+    if (light) {
+      setLightPreset(light as GlobalSettingsPanelProps["light"]);
+    }
   };
 
   return (
@@ -298,6 +305,7 @@ export default function MapStyleEditor() {
                 <TabsContent value="global" className="h-full m-0">
                   <GlobalSettingsPanel
                     map={map.current}
+                    light={lightPreset}
                     currentStyle={currentStyle}
                     onUpdateStyle={updateStyle}
                   />

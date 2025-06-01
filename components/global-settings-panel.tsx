@@ -1,9 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -12,22 +18,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { HelpCircle } from "lucide-react";
-import type mapboxgl from "mapbox-gl";
-import { LightSpecification } from "mapbox-gl";
+import { useEffect, useState } from "react";
 
-interface GlobalSettingsPanelProps {
+export interface GlobalSettingsPanelProps {
   map: mapboxgl.Map | null;
+  light: "day" | "night" | "dawn" | "dusk";
   currentStyle: any;
-  onUpdateStyle: () => void;
+  onUpdateStyle: (light?: string) => void;
 }
 
 // Map style URLs
@@ -43,11 +42,12 @@ const styleUrls: Record<string, string> = {
 
 export function GlobalSettingsPanel({
   map,
+  light,
   currentStyle,
   onUpdateStyle,
 }: Readonly<GlobalSettingsPanelProps>) {
   const [baseMapStyle, setBaseMapStyle] = useState("standard");
-  const [colorTheme, setColorTheme] = useState("monochrome");
+  const [colorTheme, setColorTheme] = useState("default");
   const [lightPreset, setLightPreset] = useState("day");
   const [visibilitySettings, setVisibilitySettings] = useState<
     Record<string, boolean>
@@ -73,12 +73,13 @@ export function GlobalSettingsPanel({
     const layers = currentStyle.layers ?? [];
     const styleUrl = currentStyle.sprite?.replace("sprite", "style");
     for (const style in styleUrls) {
-      console.log(styleUrls[style], styleUrl);
       if (styleUrls[style] === styleUrl) {
         setBaseMapStyle(style);
         break;
       }
     }
+    console.log(light);
+    updateLightPreset(light, false);
 
     // Check visibility settings from layers
     const roadLabels = layers.find((l: any) => l.id === "road-label");
@@ -120,7 +121,7 @@ export function GlobalSettingsPanel({
         "other-roads": otherRoad.paint["line-color"],
       }));
     }
-  }, [map, currentStyle]);
+  }, [map, light, currentStyle]);
 
   const updateBaseMapStyle = (style: string) => {
     setBaseMapStyle(style);
@@ -169,37 +170,67 @@ export function GlobalSettingsPanel({
     }
   };
 
-  const updateLightPreset = (preset: string) => {
+  const updateLightPreset = (preset: string, shouldUpdate: boolean = true) => {
     setLightPreset(preset);
     if (!map) return;
 
-    // Mapbox GL JS setLight expects a single light object, but supports ambient and directional as sub-properties
-    // We'll define each preset with both ambient and directional
-    const lightSettings: Record<string, LightSpecification> = {
-      day: {
-        anchor: "viewport",
-        color: "#ffffff",
-        intensity: 0.4,
-      },
-      night: {
-        anchor: "viewport",
-        color: "#002746",
-        intensity: 0.3,
-      },
-      dawn: {
-        anchor: "viewport",
-        color: "#fc8eac",
-        intensity: 0.3,
-      },
-      dusk: {
-        anchor: "viewport",
-        color: "#fc8eac",
-        intensity: 0.3,
-      },
-    };
+    // Extract color/intensity/direction for ambient and directional
+    let ambientColor = "#ffffff";
+    let ambientIntensity = 0.4;
+    let directionalColor = "#fffbe6";
+    let directionalIntensity = 0.6;
+    let directionalDirection: [number, number] = [210, 30];
+    let shadowIntensity = 0.3;
 
-    map.setLight(lightSettings[preset]);
-    onUpdateStyle();
+    if (preset === "night") {
+      ambientColor = "#223344";
+      ambientIntensity = 0.2;
+      directionalColor = "#aaccff";
+      directionalIntensity = 0.2;
+      directionalDirection = [200, 60];
+      shadowIntensity = 0.7;
+    } else if (preset === "dawn") {
+      ambientColor = "#fc8eac";
+      directionalColor = "#ffd580";
+      directionalDirection = [120, 30];
+    } else if (preset === "dusk") {
+      ambientColor = "#fc8eac";
+      directionalColor = "#ffd580";
+      directionalDirection = [300, 30];
+    }
+
+    const lights = [
+      {
+        id: "ambient",
+        type: "ambient",
+        properties: {
+          color: ambientColor,
+          intensity: ambientIntensity,
+        },
+      },
+      {
+        id: "directional",
+        type: "directional",
+        properties: {
+          color: directionalColor,
+          intensity: directionalIntensity,
+          direction: directionalDirection,
+          "shadow-intensity": shadowIntensity,
+        },
+      },
+    ];
+    // Prefer setLights if available (Mapbox GL JS v3+)
+    if (typeof (map as any).setLights === "function") {
+      (map as any).setLights(lights);
+    } else if (typeof map.setLight === "function") {
+      // Fallback: set a single light (older Mapbox GL JS)
+      map.setLight({
+        anchor: "viewport",
+        color: ambientColor,
+        intensity: ambientIntensity,
+      });
+    }
+    shouldUpdate && onUpdateStyle(preset);
   };
 
   const toggleLayerVisibility = (layerId: string, visible: boolean) => {
